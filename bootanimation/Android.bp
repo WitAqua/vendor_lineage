@@ -4,7 +4,7 @@
 //
 
 genrule {
-    name: "gen-bootanimation.zip",
+    name: "gen-bootanimation-los.zip",
     tools: [
         "mogrify",
         "soong_zip",
@@ -14,7 +14,7 @@ genrule {
         "desc.txt",
         "gen-bootanimation.sh",
     ],
-    out: ["bootanimation.zip"],
+    out: ["bootanimation-los.zip"],
 
     cmd: select((soong_config_variable("lineage_bootanimation", "height"),
                  soong_config_variable("lineage_bootanimation", "width"),
@@ -48,14 +48,14 @@ genrule {
 }
 
 prebuilt_media {
-    name: "bootanimation.zip",
-    src: ":gen-bootanimation.zip",
+    name: "bootanimation-los.zip",
+    src: ":gen-bootanimation-los.zip",
     product_specific: true,
 }
 
 install_symlink {
-    name: "bootanimation-dark.zip",
+    name: "bootanimation-dark-los.zip",
     product_specific: true,
-    installed_location: "media/bootanimation-dark.zip",
-    symlink_target: "bootanimation.zip",
+    installed_location: "media/bootanimation-dark-los.zip",
+    symlink_target: "bootanimation-los.zip",
 }
