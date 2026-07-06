@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "91ad1cb8_333ce7a2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000009
+      },
+      "writtenOn": "2026-07-06T03:38:30Z",
+      "side": 1,
+      "message": "scene_containerに置き換わったためLOS由来の機能が使えなくなっています\nまた、LMOSystemUIClockの書き直しも必要です",
+      "revId": "f8a13108f19f4582b12a5a58fa2f17312566e962",
+      "serverId": "5a06c6fe-ecb2-400e-bcbd-78c9ba895894"
+    }
+  ]
+}
