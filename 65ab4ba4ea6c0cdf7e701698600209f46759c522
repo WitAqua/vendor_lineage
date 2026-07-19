@@ -22,6 +22,30 @@
       },
       "revId": "65ab4ba4ea6c0cdf7e701698600209f46759c522",
       "serverId": "5a06c6fe-ecb2-400e-bcbd-78c9ba895894"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3d033075_321cf537",
+        "filename": "prebuilt/common/bin/backuptool.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000022
+      },
+      "writtenOn": "2026-07-19T13:22:52Z",
+      "side": 1,
+      "message": "勘違いしてました何でもないです！",
+      "parentUuid": "94655b98_fcafb63e",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 10
+      },
+      "revId": "65ab4ba4ea6c0cdf7e701698600209f46759c522",
+      "serverId": "5a06c6fe-ecb2-400e-bcbd-78c9ba895894"
     }
   ]
 }
