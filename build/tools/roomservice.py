@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2012-2013, The CyanogenMod Project
 #           (C) 2017-2018,2020-2021, The LineageOS Project
+#           (C) 2026 WitAqua
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,14 +46,14 @@ except IndexError:
 
 if not depsonly:
     print(
-        f'Device {device} not found. Attempting to retrieve device repository from LineageOS Github (http://github.com/LineageOS).'
+        f'Device {device} not found. Attempting to retrieve device repository from WitAqua-Devices Github (http://github.com/WitAqua-Devices).'
     )
 
 repositories = []
 
 if not depsonly:
     githubreq = urllib.request.Request(
-        'https://raw.githubusercontent.com/LineageOS/mirror/main/default.xml'
+        'https://raw.githubusercontent.com/WitAqua/mirror/main/default.xml'
     )
     try:
         result = ElementTree.fromstring(
@@ -65,7 +66,7 @@ if not depsonly:
         print('Failed to parse return data from GitHub')
         sys.exit(1)
     for res in result.findall('.//project'):
-        repositories.append(res.attrib['name'][10:])
+        repositories.append(res.get('name'))
 
 local_manifests = r'.repo/local_manifests'
 if not os.path.exists(local_manifests):
@@ -117,10 +118,23 @@ def get_from_manifest_project_paths(manifest_path):
 
 
 def get_default_revision():
+    try:
+        witaqua_m = ElementTree.parse('.repo/manifests/snippets/witaqua.xml')
+        for remote in witaqua_m.findall('remote'):
+            if remote.get('name') == 'witaqua-devices':
+                r = remote.get('revision')
+                if r:
+                    return r.replace('refs/heads/', '').replace('refs/tags/', '')
+    except Exception:
+        pass
+
     m = ElementTree.parse(get_manifest_path())
-    d = m.findall('default')[0]
-    r = d.get('revision')
-    return r.replace('refs/heads/', '').replace('refs/tags/', '')
+    try:
+        d = m.findall('default')[0]
+        r = d.get('revision')
+        return r.replace('refs/heads/', '').replace('refs/tags/', '')
+    except IndexError:
+        return ''
 
 
 def get_from_manifest(devicename):
@@ -132,7 +146,7 @@ def get_from_manifest(devicename):
             lm = ElementTree.Element('manifest')
 
         for localpath in lm.findall('project'):
-            if re.search(f'android_device_.*_{device}$', localpath.get('name')):
+            if re.search(f'device_.*_{device}$', localpath.get('name')):
                 return localpath.get('path')
 
     return None
@@ -164,6 +178,17 @@ def is_in_manifest(tag, attr, attr_value):
     # ... and don't forget the lineage snippet
     try:
         lm = ElementTree.parse('.repo/manifests/snippets/lineage.xml')
+        lm = lm.getroot()
+    except Exception:
+        lm = ElementTree.Element('manifest')
+
+    for localpath in lm.findall(tag):
+        if localpath.get(attr) == attr_value:
+            return True
+
+    # ... and don't forget the witaqua snippet
+    try:
+        lm = ElementTree.parse('.repo/manifests/snippets/witaqua.xml')
         lm = lm.getroot()
     except Exception:
         lm = ElementTree.Element('manifest')
@@ -211,15 +236,15 @@ def add_to_manifest(dependencies):
             repo_revision = dependency['branch']
             print(f'Checking if {repo_target} is fetched from {repo_name}')
             if is_in_manifest('project', 'path', repo_target):
-                print(f'LineageOS/{repo_name} already fetched to {repo_target}')
+                print(f'{repo_name} already fetched to {repo_target}')
                 continue
 
             project = ElementTree.Element(
                 'project',
                 attrib={
                     'path': repo_target,
-                    'remote': 'github',
-                    'name': f'LineageOS/{repo_name}',
+                    'remote': 'witaqua-devices',
+                    'name': f'{repo_name}',
                     'revision': repo_revision,
                 },
             )
@@ -252,7 +277,7 @@ def add_to_manifest(dependencies):
 
 def fetch_dependencies(repo_path):
     print(f'Looking for dependencies in {repo_path}')
-    dependencies_path = repo_path + '/lineage.dependencies'
+    dependencies_path = repo_path + '/witaqua.dependencies'
     syncable_repos = []
     verify_repos = []
 
@@ -324,7 +349,7 @@ def get_default_or_fallback_revision(repo_name):
                 'git',
                 'ls-remote',
                 '-h',
-                'https://:@github.com/LineageOS/' + repo_name,
+                'https://:@github.com/WitAqua-Devices/' + repo_name,
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -368,12 +393,10 @@ if depsonly:
 
 else:
     for repo_name in repositories:
-        if re.match(r'^android_device_[^_]*_' + device + '$', repo_name):
+        if re.match(r'^device_[^_]*_' + device + '$', repo_name):
             print(f'Found repository: {repo_name}')
 
-            manufacturer = repo_name.replace('android_device_', '').replace(
-                '_' + device, ''
-            )
+            manufacturer = repo_name.replace('device_', '').replace('_' + device, '')
             repo_path = f'device/{manufacturer}/{device}'
             revision = get_default_or_fallback_revision(repo_name)
             if revision == '':
@@ -399,5 +422,5 @@ else:
             sys.exit()
 
 print(
-    f'Repository for {device} not found in the LineageOS Github repository list. If this is in error, you may need to manually add it to your local_manifests/roomservice.xml.'
+    f'Repository for {device} not found in the WitAqua-Devices Github repository list. If this is in error, you may need to manually add it to your local_manifests/roomservice.xml.'
 )
