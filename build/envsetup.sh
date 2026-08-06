@@ -70,7 +70,7 @@ alias bib=breakfast
 function eat()
 {
     if [ "$OUT" ] ; then
-        ZIPPATH=`ls -tr "$OUT"/lineage-*.zip | tail -1`
+        ZIPPATH=`ls -tr "$OUT"/WitAqua-*.zip | tail -1`
         if [ ! -f $ZIPPATH ] ; then
             echo "Nothing to eat"
             return 1
@@ -80,7 +80,7 @@ function eat()
         echo "Found device"
         if (adb shell getprop ro.lineage.device | grep -q "$LINEAGE_BUILD"); then
             echo "Rebooting to sideload for install"
-            adb reboot sideload-auto-reboot
+            adb reboot sideload
             adb wait-for-sideload
             adb sideload $ZIPPATH
         else
@@ -208,6 +208,65 @@ function dddclient()
    fi
 }
 
+function gerritremote()
+{
+    if ! git rev-parse --git-dir &> /dev/null
+    then
+        echo ".git directory not found. Please run this from the root directory of the Android repository you wish to set up."
+        return 1
+    fi
+    git remote rm gerrit 2> /dev/null
+    local REMOTE=$(git config --get remote.witaqua.projectname)
+    local PFX="WitAqua/"
+    local LINEAGE="false"
+    local WITAQUA="true"
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.witaqua-devices.projectname)
+        PFX="WitAqua-Devices/"
+        LINEAGE="false"
+        WITAQUA="true"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.github.projectname)
+        PFX="WitAqua/"
+        LINEAGE="true"
+        WITAQUA="false"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.aosp.projectname)
+        PFX="WitAqua/"
+        LINEAGE="false"
+        WITAQUA="false"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.clo.projectname)
+        PFX="WitAqua/"
+        LINEAGE="false"
+        WITAQUA="false"
+    fi
+
+    if [[ $LINEAGE = "false" && $WITAQUA = "false" ]] ; then
+        local PROJECT=$(echo $REMOTE | sed -e "s#platform/##g; s#/#_#g")
+    elif [[ $LINEAGE = "true" && $WITAQUA = "false" ]] ; then
+        local PROJECT=$(echo $REMOTE | sed -e "s#LineageOS/##g; s#android_##g")
+    else
+        local PROJECT=$REMOTE
+    fi
+
+    local WITAQUA_USER=$(git config --get review.review.witaqua.org.username)
+    if [ -z "$WITAQUA_USER" ]
+    then
+        git remote add gerrit ssh://review.witaqua.org:29418/$PFX$PROJECT
+    else
+        git remote add gerrit ssh://$WITAQUA_USER@review.witaqua.org:29418/$PFX$PROJECT
+    fi
+    echo "Remote 'gerrit' created"
+}
+
 function lineageremote()
 {
     if ! git rev-parse --git-dir &> /dev/null
@@ -307,6 +366,59 @@ function cloremote()
         git remote add clo https://git.codelinaro.org/clo/la/$PFX$PROJECT
     fi
     echo "Remote 'clo' created"
+}
+
+function upstreamremote()
+{
+    if ! git rev-parse --git-dir &> /dev/null
+    then
+        echo ".git directory not found. Please run this from the root directory of the Android repository you wish to set up."
+        return 1
+    fi
+    git remote rm upstream 2> /dev/null
+    local REMOTE=$(git config --get remote.witaqua.projectname)
+    local ORIGIN_TYPE="witaqua"
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.witaqua-devices.projectname)
+        ORIGIN_TYPE="witaqua"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.aosp.projectname)
+        ORIGIN_TYPE="lineage"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.aosp.projectname)
+        ORIGIN_TYPE="other"
+    fi
+    if [ -z "$REMOTE" ]
+    then
+        REMOTE=$(git config --get remote.clo.projectname)
+        ORIGIN_TYPE="other"
+    fi
+
+    local PFX="LineageOS/"
+    if [[ $ORIGIN_TYPE = "witaqua" ]] ; then
+        local PROJECT="android_${REMOTE}"
+        if [ $PROJECT = "android_device_witaqua_sepolicy" ]
+        then
+            PROJECT="android_device_lineage_sepolicy"
+        fi
+        if [ $PROJECT = "android_manifest" ]
+        then
+            PROJECT="android"
+        fi
+    elif [[ $ORIGIN_TYPE = "lineage" ]] ; then
+        local PROJECT=$REMOTE
+        PFX=""
+    else
+        local PROJECT=$(echo $REMOTE | sed -e "s#platform/#android/#g; s#/#_#g")
+    fi
+
+    git remote add upstream https://github.com/$PFX$PROJECT
+    echo "Remote 'upstream' created"
 }
 
 function githubremote()
@@ -935,7 +1047,8 @@ function build_kernel() {
         echo "Skipping kernel build"
         return
     fi
-    local lineage_version="lineage-$(_get_build_var_cached PRODUCT_VERSION_MAJOR).$(_get_build_var_cached PRODUCT_VERSION_MINOR)"
+    local version_major=$(_get_build_var_cached PRODUCT_VERSION_MAJOR)
+    local lineage_version="lineage-$((version_major + 20)).$(_get_build_var_cached PRODUCT_VERSION_MINOR)"
 
     local target_kernel_device="$(_get_build_var_cached TARGET_KERNEL_DEVICE)"
     local target_kernel_dir="${ANDROID_BUILD_TOP}/$(_get_build_var_cached TARGET_KERNEL_DIR)"
