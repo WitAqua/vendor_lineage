@@ -930,6 +930,20 @@ function fixup_common_out_dir() {
     fi
 }
 
+function _witaqua_devices_revision() {
+    local snippet="${ANDROID_BUILD_TOP}/.repo/manifests/snippets/witaqua.xml"
+    [ -f "${snippet}" ] || return 1
+    python3 - "${snippet}" <<'EOF'
+import sys
+import xml.etree.ElementTree as ElementTree
+
+for remote in ElementTree.parse(sys.argv[1]).getroot().findall('remote'):
+    if remote.get('name') == 'witaqua-devices' and remote.get('revision'):
+        print(remote.get('revision').replace('refs/heads/', '').replace('refs/tags/', ''))
+        break
+EOF
+}
+
 function build_kernel() {
     if [[ "${SKIP_KERNEL_BUILD}" == "true" || "${SKIP_KERNEL_BUILD}" == "1" ]]; then
         echo "Skipping kernel build"
@@ -977,7 +991,23 @@ function build_kernel() {
     if [[ "${SKIP_KERNEL_SYNC}" != "true" && "${SKIP_KERNEL_SYNC}" != "1" ]]; then
         echo "Syncing ${KERNEL_BUILD_TOP}"
         local target_kernel_manifest=$(echo android_kernel_${target_kernel_source}_manifest | tr / _)
-        local repo_init_args=("-b" "${lineage_version}")
+        local target_kernel_manifest_url="https://github.com/LineageOS/${target_kernel_manifest}.git"
+        local target_kernel_manifest_branch="${lineage_version}"
+
+        # Devices we maintain ourselves keep their kernel manifest next to the
+        # device tree, so look there first. WitAqua-Devices drops the android_
+        # prefix and tracks our own branch, the same way roomservice resolves a
+        # device repository.
+        local witaqua_kernel_manifest=$(echo kernel_${target_kernel_source}_manifest | tr / _)
+        local witaqua_revision=$(_witaqua_devices_revision)
+        if [ -n "${witaqua_revision}" ] && git ls-remote --exit-code -h \
+                "https://github.com/WitAqua-Devices/${witaqua_kernel_manifest}" \
+                "refs/heads/${witaqua_revision}" &> /dev/null; then
+            target_kernel_manifest_url="https://github.com/WitAqua-Devices/${witaqua_kernel_manifest}.git"
+            target_kernel_manifest_branch="${witaqua_revision}"
+        fi
+
+        local repo_init_args=("-b" "${target_kernel_manifest_branch}")
         if [ -n "${LINEAGE_MIRROR}" ]; then
             repo_init_args+=("--reference" "${LINEAGE_MIRROR}")
         fi
@@ -985,7 +1015,7 @@ function build_kernel() {
             repo_init_args+=("--repo-rev" "${REPO_VERSION}")
         fi
 
-        yes | repo init -u https://github.com/LineageOS/${target_kernel_manifest}.git ${repo_init_args[@]} || [ $? -eq 141 ]
+        yes | repo init -u ${target_kernel_manifest_url} ${repo_init_args[@]} || [ $? -eq 141 ]
         if [ $? -ne 0 ]; then
             echo "Kernel source repo init failed"
             popd > /dev/null
