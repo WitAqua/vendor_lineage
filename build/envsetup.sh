@@ -935,9 +935,6 @@ function build_kernel() {
         echo "Skipping kernel build"
         return
     fi
-    local version_major=$(_get_build_var_cached PRODUCT_VERSION_MAJOR)
-    local lineage_version="lineage-$((version_major + 20)).$(_get_build_var_cached PRODUCT_VERSION_MINOR)"
-
     local target_kernel_device="$(_get_build_var_cached TARGET_KERNEL_DEVICE)"
     local target_kernel_dir="${ANDROID_BUILD_TOP}/$(_get_build_var_cached TARGET_KERNEL_DIR)"
     local target_kernel_source="$(_get_build_var_cached TARGET_KERNEL_PLATFORM_SOURCE)"
@@ -976,8 +973,18 @@ function build_kernel() {
     pushd "${KERNEL_BUILD_TOP}" > /dev/null
     if [[ "${SKIP_KERNEL_SYNC}" != "true" && "${SKIP_KERNEL_SYNC}" != "1" ]]; then
         echo "Syncing ${KERNEL_BUILD_TOP}"
-        local target_kernel_manifest=$(echo android_kernel_${target_kernel_source}_manifest | tr / _)
-        local repo_init_args=("-b" "${lineage_version}")
+        # The kernel manifest lives next to the device tree it belongs to, so it
+        # is named and branched the way roomservice resolves a device repository.
+        local target_kernel_manifest=$(echo kernel_${target_kernel_source}_manifest | tr / _)
+        local target_kernel_branch=$(sed -n '/name="witaqua-devices"/,/\/>/ s|.*revision="refs/heads/\([^"]*\)".*|\1|p' \
+            "${ANDROID_BUILD_TOP}/.repo/manifests/snippets/witaqua.xml")
+        if [ -z "${target_kernel_branch}" ]; then
+            echo "Failed to resolve the witaqua-devices revision"
+            popd > /dev/null
+            return 1
+        fi
+
+        local repo_init_args=("-b" "${target_kernel_branch}")
         if [ -n "${LINEAGE_MIRROR}" ]; then
             repo_init_args+=("--reference" "${LINEAGE_MIRROR}")
         fi
@@ -985,7 +992,7 @@ function build_kernel() {
             repo_init_args+=("--repo-rev" "${REPO_VERSION}")
         fi
 
-        yes | repo init -u https://github.com/LineageOS/${target_kernel_manifest}.git ${repo_init_args[@]} || [ $? -eq 141 ]
+        yes | repo init -u https://github.com/WitAqua-Devices/${target_kernel_manifest}.git ${repo_init_args[@]} || [ $? -eq 141 ]
         if [ $? -ne 0 ]; then
             echo "Kernel source repo init failed"
             popd > /dev/null
