@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "519ea7e5_d2fe2a17",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000009
+      },
+      "writtenOn": "2026-10-26T03:50:35Z",
+      "side": 1,
+      "message": "vendor/witaquaに移動させるべき",
+      "revId": "70c531653a91f1cb6c4b008940d0f68b6ff5f77f",
+      "serverId": "5a06c6fe-ecb2-400e-bcbd-78c9ba895894"
+    }
+  ]
+}
