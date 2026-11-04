@@ -24,6 +24,7 @@
         <item>com.android.systemui.plugin.globalactions.wallet</item>
         <item>org.lineageos.settings.device</item>
         <item>com.libremobileos.clock</item>
+        <item>org.witaqua.clockplugin</item>
     </string-array>
 
     <!-- Icons that don't show in a collapsed non-keyguard statusbar -->
