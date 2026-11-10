@@ -58,7 +58,7 @@ PRODUCT_COPY_FILES += \
 
 # Legal
 PRODUCT_PRODUCT_PROPERTIES += \
-    ro.lineagelegal.url=https://lineageos.org/legal
+    ro.lineagelegal.url=https://witaqua.org/legal
 
 # Media
 PRODUCT_PRODUCT_PROPERTIES += \
